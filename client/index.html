@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Real-time drawing canvas with multiple users, global undo/redo, and live cursor tracking">
+    <title>Canvas | Real-time Drawing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="joinModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="logo-icon">🎨</div>
+                <h1>Canvas</h1>
+                <p>Draw together in real-time</p>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label for="usernameInput">Your Name</label>
+                    <input type="text" id="usernameInput" placeholder="Enter your name..." maxlength="20">
+                </div>
+                <div class="input-group">
+                    <label for="roomInput">Room ID (optional)</label>
+                    <input type="text" id="roomInput" placeholder="Leave blank for default room" maxlength="20">
+                </div>
+                <button id="joinButton" class="primary-btn">
+                    <span>Join Canvas</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" class="hidden">
+        <header class="toolbar">
+            <div class="toolbar-left">
+                <div class="logo">
+                    <span class="logo-icon">🎨</span>
+                    <span class="logo-text">Canvas</span>
+                </div>
+                <div class="room-badge" id="roomBadge">
+                    <span class="room-icon">🏠</span>
+                    <span id="roomName">default</span>
+                </div>
+            </div>
+            <div class="toolbar-center">
+                <div class="tool-group">
+                    <button class="tool-btn active" id="brushTool" data-tool="brush" title="Brush (B)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M12 19l7-7 3 3-7 7-3-3z" />
+                            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+                        </svg>
+                    </button>
+                    <button class="tool-btn" id="eraserTool" data-tool="eraser" title="Eraser (E)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8l9-9c.8-.8 2-.8 2.8 0l6.4 6.4c.8.8.8 2 0 2.8L15 20" />
+                            <path d="M6 14l4 4" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Color Picker -->
+                <div class="tool-group">
+                    <div class="color-picker-wrapper">
+                        <input type="color" id="colorPicker" value="#FF6B6B" title="Pick Color">
+                        <div class="color-preview" id="colorPreview"></div>
+                    </div>
+                    <div class="color-presets">
+                        <button class="color-preset active" data-color="#FF6B6B" style="background: #FF6B6B"></button>
+                        <button class="color-preset" data-color="#4ECDC4" style="background: #4ECDC4"></button>
+                        <button class="color-preset" data-color="#45B7D1" style="background: #45B7D1"></button>
+                        <button class="color-preset" data-color="#96CEB4" style="background: #96CEB4"></button>
+                        <button class="color-preset" data-color="#FFEAA7" style="background: #FFEAA7"></button>
+                        <button class="color-preset" data-color="#2C3E50" style="background: #2C3E50"></button>
+                        <button class="color-preset" data-color="#FFFFFF"
+                            style="background: #FFFFFF; border: 1px solid #ddd"></button>
+                    </div>
+                </div>
+
+                <div class="tool-group">
+                    <div class="stroke-width-control">
+                        <label>Size</label>
+                        <input type="range" id="strokeWidth" min="1" max="50" value="5">
+                        <span id="strokeWidthValue">5px</span>
+                    </div>
+                </div>
+
+                <div class="tool-group">
+                    <button class="tool-btn" id="undoBtn" title="Undo (Ctrl+Z)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M3 10h10a5 5 0 0 1 5 5v2" />
+                            <path d="M7 14l-4-4 4-4" />
+                        </svg>
+                    </button>
+                    <button class="tool-btn" id="redoBtn" title="Redo (Ctrl+Y)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 10H11a5 5 0 0 0-5 5v2" />
+                            <path d="M17 14l4-4-4-4" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="tool-group">
+                    <button class="tool-btn danger" id="clearBtn" title="Clear Canvas">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M3 6h18" />
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="toolbar-right">
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-dot connected"></span>
+                    <span class="status-text">Connected</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="mainCanvas"></canvas>
+                <canvas id="previewCanvas"></canvas>
+                <div class="cursors-layer" id="cursorsLayer"></div>
+            </div>
+
+            <aside class="users-sidebar" id="usersSidebar">
+                <div class="sidebar-header">
+                    <h3>Online Users</h3>
+                    <span class="user-count" id="userCount">0</span>
+                </div>
+                <div class="users-list" id="usersList">
+                    <!-- Users will be dynamically added here -->
+                </div>
+                <div class="sidebar-footer">
+                    <div class="current-user" id="currentUserInfo">
+                        <div class="user-avatar" id="currentUserAvatar">U</div>
+                        <span id="currentUserName">You</span>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <div class="history-panel" id="historyPanel">
+            <div class="panel-header">
+                <h4>Activity</h4>
+                <span class="history-count" id="historyCount">0 strokes</span>
+            </div>
+            <div class="activity-list" id="activityList">
+                <!-- Activity items will be added here -->
+            </div>
+        </div>
+
+        <div class="toast-container" id="toastContainer"></div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script src="canvas.js"></script>
+    <script src="websocket.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>
